@@ -1,39 +1,1061 @@
-<div class="dashboard" [class.dark]="isDarkMode">
-  <button class="toggle-btn" (click)="toggleDarkMode()" title="Alternar tema">
-    {{ isDarkMode ? '☀️ Claro' : '🌙 Escuro' }}
-  </button>
+<div class="app-layout" [class.dark]="isDarkMode">
+  
+  <!-- TOPO: CABEÇALHO COM LOGO, NOME DO SISTEMA, BARRA DE PESQUISA E TEMA -->
+  <header class="app-header">
+    <div class="container header-content">
+      
+      <!-- Logo e Identidade -->
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+            <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>ClimaCast</h1>
+          <span class="badge-sub">Previsão Inteligente</span>
+        </div>
+      </div>
 
-  <h1>Dashboard de Clima</h1>
+      <!-- Barra de Pesquisa Elegante Superior -->
+      <div class="header-search-wrap">
+        <form class="search-form" (submit)="buscarClima(); $event.preventDefault()">
+          <div class="input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              class="search-input"
+              [(ngModel)]="cidade"
+              name="cidade"
+              placeholder="Pesquisar cidade..."
+              autocomplete="off"
+              [disabled]="carregando"
+            />
+            <button
+              *ngIf="cidade"
+              type="button"
+              class="clear-input-btn"
+              (click)="cidade = ''"
+              title="Limpar campo"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
 
-  <div class="busca">
-    <input [(ngModel)]="cidade" placeholder="Digite a cidade..." />
-    <button (click)="buscarClima()">Buscar</button>
+          <button type="submit" class="btn-primary" [disabled]="carregando || !cidade.trim()" title="Pesquisar">
+            <svg *ngIf="!carregando" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <svg *ngIf="carregando" class="btn-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="2" x2="12" y2="6" />
+              <line x1="12" y1="18" x2="12" y2="22" />
+              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+              <line x1="2" y1="12" x2="6" y2="12" />
+              <line x1="18" y1="12" x2="22" y2="12" />
+              <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+              <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+            </svg>
+            <span class="btn-text">Buscar</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn-secondary btn-geoloc"
+            (click)="buscarPorLocalizacao()"
+            [disabled]="carregando || carregandoGeoloc"
+            title="Usar minha localização GPS atual"
+          >
+            <svg class="geo-icon" [class.animate-spin]="carregandoGeoloc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11" />
+            </svg>
+            <span class="geo-text">Localização</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Relógio e Alternador de Tema -->
+      <div class="header-right">
+        <div class="header-datetime" *ngIf="horaAtualFormatada">
+          <div class="time-display">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span>{{ horaAtualFormatada }}</span>
+          </div>
+          <span class="date-display">{{ dataAtualFormatada }}</span>
+        </div>
+
+        <button
+          class="theme-toggle-btn"
+          (click)="toggleDarkMode()"
+          [title]="isDarkMode ? 'Alternar para Modo Claro' : 'Alternar para Modo Escuro'"
+          aria-label="Alternar tema"
+        >
+          <span class="theme-icon-wrap" [class.rotated]="isDarkMode">
+            <!-- Ícone Sol -->
+            <svg *ngIf="!isDarkMode" class="theme-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <!-- Ícone Lua -->
+            <svg *ngIf="isDarkMode" class="theme-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </span>
+          <span class="theme-text">{{ isDarkMode ? 'Escuro' : 'Claro' }}</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- BARRA DE SUGESTÕES E HISTÓRICO RECENTE -->
+  <div class="sub-header-bar">
+    <div class="container sub-header-content">
+      
+      <!-- Histórico Recente -->
+      <div class="chips-group" *ngIf="historicoBuscas.length > 0">
+        <span class="chips-label">
+          <svg class="icon-tiny" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 14 14" />
+          </svg>
+          Recentes:
+        </span>
+        <div class="chips-list">
+          <button
+            *ngFor="let item of historicoBuscas"
+            type="button"
+            class="chip chip-history"
+            (click)="buscarClima(item)"
+            [class.active]="dadosClima?.name?.toLowerCase() === item.toLowerCase()"
+          >
+            <span>{{ item }}</span>
+            <span class="chip-remove" (click)="removerDoHistorico(item, $event)" title="Remover">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cidades Sugeridas -->
+      <div class="chips-group">
+        <span class="chips-label">
+          <svg class="icon-tiny" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          Destaques:
+        </span>
+        <div class="chips-list">
+          <button
+            *ngFor="let item of cidadesSugeridas"
+            type="button"
+            class="chip"
+            (click)="buscarClima(item)"
+            [class.active]="dadosClima?.name?.toLowerCase() === item.toLowerCase()"
+          >
+            {{ item }}
+          </button>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  @if (erroMensagem) {
-    <div class="erro-mensagem">
-      ⚠️ {{ erroMensagem }}
+  <!-- AVISO DE TEMA AUTOMÁTICO -->
+  <div class="container" *ngIf="autoThemeAviso">
+    <div class="auto-theme-toast animate-fade-in">
+      <div class="toast-content">
+        <svg class="toast-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+        </svg>
+        <span class="toast-msg">{{ autoThemeAviso }}</span>
+      </div>
+      <button class="toast-close" (click)="autoThemeAviso = ''" title="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
     </div>
-  }
+  </div>
 
-  @if (dadosClima) {
-    <div class="cartao-clima">
-      <h2>{{ dadosClima.name }}, {{ dadosClima.sys?.country }}</h2>
-      <p class="temp">
-        {{ dadosClima.main?.temp | number:'1.0-0' }}°C
-      </p>
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="container main-content">
 
-      <!-- Lendo o primeiro item da lista de clima da API -->
-      @if (dadosClima.weather && dadosClima.weather[0]) {
-        <p class="condicao">
-          {{ dadosClima.weather[0].description }}
-        </p>
-      }
+    <!-- ALERTA DE ERRO / AVISO -->
+    <div *ngIf="erroMensagem" class="alert-box alert-error animate-fade-in">
+      <div class="alert-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+      <div class="alert-content">
+        <h4>Aviso de Consulta</h4>
+        <p>{{ erroMensagem }}</p>
+      </div>
+      <button class="alert-close" (click)="erroMensagem = ''">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
 
-      <div class="detalhes">
-        <p>Umidade: {{ dadosClima.main?.humidity }}%</p>
-        <p>Vento: {{ dadosClima.wind?.speed }} km/h</p>
+    <!-- 6. SKELETON LOADERS DURANTE CARREGAMENTO INICIAL -->
+    <div *ngIf="carregando && !dadosClima" class="skeleton-dashboard animate-fade-in">
+      <div class="skeleton-hero"></div>
+      <div class="skeleton-grid">
+        <div class="skeleton-card" *ngFor="let item of [1,2,3,4,5,6]"></div>
       </div>
     </div>
-  }
+
+    <!-- PAINEL PRINCIPAL (DASHBOARD COMPLETO E VISÍVEL) -->
+    <div *ngIf="!carregando || dadosClima" class="weather-dashboard animate-fade-in">
+
+      <!-- ============================================== -->
+      <!-- 1. PAINEL PRINCIPAL: CIDADE, ESTADO, PAÍS, TEMP -->
+      <!-- ============================================== -->
+      <section class="main-panel-section">
+        <div class="main-weather-hero">
+          
+          <!-- Cabeçalho de Localização -->
+          <div class="hero-top">
+            <div class="location-group">
+              <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <div class="location-texts">
+                <h2 class="location-title">
+                  {{ dadosClima ? dadosClima.name : 'Aguardando localização' }}
+                  <span *ngIf="dadosClima?.estado" class="location-state">, {{ dadosClima?.estado }}</span>
+                </h2>
+                <span class="country-badge">{{ dadosClima ? dadosClima.sys.country : '--' }}</span>
+              </div>
+            </div>
+
+            <div class="hero-live-badge">
+              <span class="live-pulse" *ngIf="dadosClima"></span>
+              <span>{{ dadosClima ? 'Tempo Real' : 'Aguardando dados' }}</span>
+            </div>
+          </div>
+
+          <!-- Centro do Hero: Temperatura e Condição -->
+          <div class="hero-center">
+            <div class="temp-big-block">
+              <div class="temp-val-wrapper">
+                <span class="temp-number">{{ dadosClima ? (dadosClima.main.temp | number:'1.0-0') : '--' }}</span>
+                <span class="temp-symbol">°C</span>
+              </div>
+              <div class="temp-pills">
+                <span class="pill pill-max" title="Temperatura Máxima">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                  {{ dadosClima ? (dadosClima.main.temp_max | number:'1.0-0') + '°C máx' : '--' }}
+                </span>
+                <span class="pill pill-min" title="Temperatura Mínima">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                  {{ dadosClima ? (dadosClima.main.temp_min | number:'1.0-0') + '°C mín' : '--' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="condition-display-block">
+              <div class="weather-icon-wrap">
+                <img
+                  *ngIf="dadosClima?.weather && dadosClima!.weather[0]"
+                  [src]="obterIconeUrl(dadosClima!.weather[0].icon, '4x')"
+                  [alt]="dadosClima!.weather[0].description"
+                  class="main-weather-img"
+                />
+                <svg *ngIf="!dadosClima" class="main-weather-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6; padding: 12px;">
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                </svg>
+              </div>
+              <p class="condition-text">{{ dadosClima?.weather?.[0]?.description || 'Permita o acesso à localização ou pesquise uma cidade' }}</p>
+              <span class="feels-like-text">
+                <ng-container *ngIf="dadosClima">
+                  Sensação térmica de <strong>{{ dadosClima.main.feels_like | number:'1.0-0' }}°C</strong>
+                </ng-container>
+                <ng-container *ngIf="!dadosClima">
+                  Aguardando localização
+                </ng-container>
+              </span>
+            </div>
+          </div>
+
+          <!-- Rodapé do Hero: Coordenadas e Dados Solares -->
+          <div class="hero-bottom-bar">
+            <div class="hero-stat-item">
+              <svg class="hero-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span>{{ dadosClima ? ((dadosClima.coord.lat | number:'1.2-2') + '°, ' + (dadosClima.coord.lon | number:'1.2-2') + '°') : '--, --' }}</span>
+            </div>
+
+            <div class="hero-stat-item">
+              <svg class="hero-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 18a5 5 0 0 0-10 0" />
+                <line x1="12" y1="2" x2="12" y2="9" />
+                <line x1="4.22" y1="10.22" x2="5.64" y2="11.64" />
+                <line x1="1" y1="18" x2="3" y2="18" />
+                <line x1="21" y1="18" x2="23" y2="18" />
+                <line x1="18.36" y1="11.64" x2="19.78" y2="10.22" />
+                <line x1="23" y1="22" x2="1" y2="22" />
+              </svg>
+              <span>Nascer do Sol: <strong>{{ nascerDoSol }}</strong></span>
+            </div>
+
+            <div class="hero-stat-item">
+              <svg class="hero-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 18a5 5 0 0 0-10 0" />
+                <line x1="12" y1="9" x2="12" y2="2" />
+                <line x1="4.22" y1="10.22" x2="5.64" y2="11.64" />
+                <line x1="1" y1="18" x2="3" y2="18" />
+                <line x1="21" y1="18" x2="23" y2="18" />
+                <line x1="18.36" y1="11.64" x2="19.78" y2="10.22" />
+                <line x1="23" y1="22" x2="1" y2="22" />
+              </svg>
+              <span>Pôr do Sol: <strong>{{ porDoSol }}</strong></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Grade de Métricas Principais (Umidade, Vento, Pressão, UV, Qualidade do Ar, Nuvens) -->
+        <div class="metrics-grid">
+
+          <!-- 1. Umidade do Ar -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Umidade Relativa</span>
+              <div class="metric-icon-box" style="color: var(--accent-cyan);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-number">{{ dadosClima ? dadosClima.main.humidity : '--' }}</span>
+              <span class="metric-unit">%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" [style.width.%]="dadosClima ? dadosClima.main.humidity : 0" style="background: var(--accent-cyan);"></div>
+            </div>
+            <div class="metric-footer">
+              <span class="status-indicator" [style.color]="dadosClima ? classificacaoUmidade.cor : 'var(--text-muted)'">
+                ● {{ dadosClima ? classificacaoUmidade.texto : 'Aguardando localização' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 2. Velocidade e Direção do Vento -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Vento</span>
+              <div class="metric-icon-box" style="color: var(--primary);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" />
+                  <path d="M9.6 4.6A2 2 0 1 1 11 8H2" />
+                  <path d="M12.6 19.4A2 2 0 1 0 14 16H2" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-number">{{ dadosClima ? ((dadosClima.wind.speed || 0) * 3.6 | number:'1.0-1') : '--' }}</span>
+              <span class="metric-unit">km/h</span>
+            </div>
+            <p class="metric-subtext">Direção: <strong>{{ dadosClima ? direcaoVento : '--' }}</strong></p>
+            <div class="metric-footer">
+              <span *ngIf="dadosClima?.wind?.gust" class="subtext-badge">
+                Rajadas: {{ ((dadosClima?.wind?.gust || 0) * 3.6) | number:'1.0-0' }} km/h
+              </span>
+              <span *ngIf="dadosClima && !dadosClima.wind.gust" class="subtext-badge">
+                Brisa contínua
+              </span>
+              <span *ngIf="!dadosClima" class="subtext-badge">
+                Aguardando localização
+              </span>
+            </div>
+          </div>
+
+          <!-- 3. Pressão Atmosférica -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Pressão Atmosférica</span>
+              <div class="metric-icon-box" style="color: var(--accent-purple);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="m16 12-4-4-4 4" />
+                  <path d="M12 16V8" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-number">{{ dadosClima ? dadosClima.main.pressure : '--' }}</span>
+              <span class="metric-unit">hPa</span>
+            </div>
+            <p class="metric-subtext">
+              {{ dadosClima ? (dadosClima.main.pressure >= 1013 ? 'Alta pressão (Tempo firme)' : 'Baixa pressão (Instabilidade)') : 'Aguardando localização' }}
+            </p>
+            <div class="metric-footer">
+              <span class="subtext-badge">Nível do mar padrão: 1013 hPa</span>
+            </div>
+          </div>
+
+          <!-- 4. Índice UV -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Índice UV</span>
+              <div class="metric-icon-box" [style.color]="indiceUv ? indiceUv.cor : 'var(--accent-amber)'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-number">{{ indiceUv ? indiceUv.valor : '--' }}</span>
+              <span class="metric-unit">/ 11+</span>
+            </div>
+            <p class="metric-subtext">{{ indiceUv ? indiceUv.recomendacao : 'Permita o acesso à localização ou pesquise uma cidade' }}</p>
+            <div class="metric-footer">
+              <span class="status-indicator" [style.color]="indiceUv ? indiceUv.cor : 'var(--text-muted)'">
+                ● {{ indiceUv ? ('Nível ' + indiceUv.classificacao) : 'Aguardando localização' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 5. Qualidade do Ar (Air Quality) -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Qualidade do Ar</span>
+              <div class="metric-icon-box" [style.color]="qualidadeAr ? qualidadeAr.cor : 'var(--accent-green)'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 2v4M16 2v4M3 10h18M5 14h14M7 18h10" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-number">{{ qualidadeAr ? qualidadeAr.classificacao : '--' }}</span>
+            </div>
+            <p class="metric-subtext">{{ qualidadeAr ? qualidadeAr.descricao : 'Permita o acesso à localização ou pesquise uma cidade' }}</p>
+            <div class="metric-footer">
+              <span class="subtext-badge">{{ qualidadeAr ? ('PM2.5: ' + (qualidadeAr.pm25 | number:'1.0-1') + ' µg/m³') : 'Aguardando localização' }}</span>
+            </div>
+          </div>
+
+          <!-- 6. Cobertura de Nuvens & Visibilidade -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Nuvens & Visibilidade</span>
+              <div class="metric-icon-box" style="color: var(--text-muted);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-number">{{ dadosClima ? dadosClima.clouds.all : '--' }}</span>
+              <span class="metric-unit">%</span>
+            </div>
+            <p class="metric-subtext">Visibilidade: <strong>{{ dadosClima ? ((dadosClima.visibility / 1000) | number:'1.0-1') + ' km' : '--' }}</strong> ({{ dadosClima ? classificacaoVisibilidade : 'Aguardando localização' }})</p>
+            <div class="metric-footer">
+              <span class="subtext-badge">
+                {{ dadosClima ? (dadosClima.clouds.all < 20 ? 'Céu Limpo' : dadosClima.clouds.all < 60 ? 'Parcialmente Nublado' : 'Céu Encoberto') : 'Aguardando localização' }}
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 2. PAINEL DE PREVISÃO HORÁRIA (TIMELINE) -->
+      <!-- ============================================== -->
+      <section class="section-card">
+        
+        <!-- ALERTA DE CHUVA AUTOMÁTICO SE HOUVER PREVISÃO NAS PRÓXIMAS HORAS -->
+        <div class="rain-alert-banner animate-fade-in" *ngIf="alertaChuvaHoraria">
+          <div class="rain-alert-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+              <path d="M16 14v6" />
+              <path d="M8 14v6" />
+              <path d="M12 16v6" />
+            </svg>
+          </div>
+          <div class="rain-alert-text">
+            <strong>Alerta de Precipitação Detectada</strong>
+            <p>Há previsão de chuva nas próximas horas. Recomendamos levar <strong>guarda-chuva</strong> e <strong>capa de chuva</strong> ao sair.</p>
+          </div>
+        </div>
+
+        <div class="section-title-row">
+          <div class="section-title-wrap">
+            <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <h3>Previsão Horária (Próximas 24 Horas)</h3>
+          </div>
+          <span class="section-meta">Intervalos a cada 3 horas</span>
+        </div>
+
+        <div class="hourly-scroll-container">
+          <div class="hourly-timeline-track">
+            
+            <!-- Quando há dados de previsão horária -->
+            <ng-container *ngIf="previsaoHoraria.length > 0">
+              <div *ngFor="let item of previsaoHoraria" class="hourly-item-card" [class.item-rain]="item.isRain">
+                <span class="hourly-time">{{ item.time }}</span>
+                
+                <div class="hourly-icon-wrap">
+                  <img [src]="obterIconeUrl(item.icon, '2x')" [alt]="item.condition" class="hourly-icon-img" />
+                </div>
+
+                <span class="hourly-temp">{{ item.temp }}°C</span>
+                <span class="hourly-cond">{{ item.condition }}</span>
+
+                <div class="hourly-details-list">
+                  <div class="hourly-detail" title="Chance de Chuva">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                    </svg>
+                    <span>{{ item.rainProbability }}%</span>
+                  </div>
+                  <div class="hourly-detail" title="Umidade">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 2a10 10 0 0 0 0 20" />
+                    </svg>
+                    <span>{{ item.humidity }}%</span>
+                  </div>
+                  <div class="hourly-detail" title="Vento">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" />
+                    </svg>
+                    <span>{{ item.windSpeed }} km/h</span>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Placeholder quando aguardando localização -->
+            <ng-container *ngIf="previsaoHoraria.length === 0">
+              <div *ngFor="let item of placeholderHoras" class="hourly-item-card">
+                <span class="hourly-time">{{ item }}</span>
+                
+                <div class="hourly-icon-wrap">
+                  <svg class="hourly-icon-img" style="opacity: 0.4; width: 44px; height: 44px; margin: auto;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+                  </svg>
+                </div>
+
+                <span class="hourly-temp">--°C</span>
+                <span class="hourly-cond">Aguardando localização</span>
+
+                <div class="hourly-details-list">
+                  <div class="hourly-detail" title="Chance de Chuva">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                    </svg>
+                    <span>--%</span>
+                  </div>
+                  <div class="hourly-detail" title="Umidade">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 2a10 10 0 0 0 0 20" />
+                    </svg>
+                    <span>--%</span>
+                  </div>
+                  <div class="hourly-detail" title="Vento">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" />
+                    </svg>
+                    <span>-- km/h</span>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 3. PAINEL INTELIGENTE DE RECOMENDAÇÕES (ROUPAS & TECIDOS) -->
+      <!-- ============================================== -->
+      <section class="section-card">
+        <div class="section-title-row">
+          <div class="section-title-wrap">
+            <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+            </svg>
+            <div>
+              <h3>Painel Inteligente de Recomendações de Vestimenta</h3>
+              <p class="section-subtitle">{{ recomendacaoRoupas ? recomendacaoRoupas.faixaTemp : 'Permita o acesso à localização ou pesquise uma cidade' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="smart-grid-3">
+          
+          <!-- Roupas Recomendadas -->
+          <div class="smart-box">
+            <div class="smart-box-header">
+              <svg class="smart-box-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              <h4>Roupas Recomendadas</h4>
+            </div>
+            <ul class="smart-list" *ngIf="recomendacaoRoupas">
+              <li *ngFor="let r of recomendacaoRoupas.roupas">
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ r }}</span>
+              </li>
+            </ul>
+            <ul class="smart-list" *ngIf="!recomendacaoRoupas">
+              <li>
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Aguardando localização</span>
+              </li>
+              <li>
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Permita o acesso à localização ou pesquise uma cidade</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tecidos Recomendados -->
+          <div class="smart-box">
+            <div class="smart-box-header">
+              <svg class="smart-box-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="m4.93 4.93 4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24" />
+              </svg>
+              <h4>Tecidos Recomendados</h4>
+            </div>
+            <ul class="smart-list" *ngIf="recomendacaoRoupas">
+              <li *ngFor="let t of recomendacaoRoupas.tecidos">
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ t }}</span>
+              </li>
+            </ul>
+            <ul class="smart-list" *ngIf="!recomendacaoRoupas">
+              <li>
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Aguardando localização</span>
+              </li>
+              <li>
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Permita o acesso à localização ou pesquise uma cidade</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Proteção e Cuidados -->
+          <div class="smart-box">
+            <div class="smart-box-header">
+              <svg class="smart-box-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <h4>Proteção & Cuidados</h4>
+            </div>
+            <ul class="smart-list" *ngIf="recomendacaoRoupas">
+              <li *ngFor="let p of recomendacaoRoupas.protecoesCuidados">
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ p }}</span>
+              </li>
+            </ul>
+            <ul class="smart-list" *ngIf="!recomendacaoRoupas">
+              <li>
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Aguardando localização</span>
+              </li>
+              <li>
+                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Permita o acesso à localização ou pesquise uma cidade</span>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- Explicação do Especialista -->
+        <div class="smart-explanation-bar">
+          <svg class="info-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <div class="explanation-text">
+            <strong>Por que essas escolhas?</strong>
+            <p>{{ recomendacaoRoupas ? recomendacaoRoupas.motivoExplicacao : 'Permita o acesso à localização ou pesquise uma cidade para calcular as recomendações ideais de vestimenta para o clima atual.' }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 4. ATIVIDADES RECOMENDADAS (PASSEIOS) -->
+      <!-- ============================================== -->
+      <section class="section-card">
+        <div class="section-title-row">
+          <div class="section-title-wrap">
+            <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+            </svg>
+            <div>
+              <h3>{{ recomendacaoAtividades ? recomendacaoAtividades.titulo : 'Atividades Recomendadas' }}</h3>
+              <p class="section-subtitle">{{ recomendacaoAtividades ? recomendacaoAtividades.subtitulo : 'Sugestões de passeios e lazer adaptadas ao clima' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="activities-grid" *ngIf="recomendacaoAtividades">
+          <div *ngFor="let atv of recomendacaoAtividades.atividades" class="activity-card">
+            <div class="activity-badge-type" [class.badge-outdoor]="atv.tipo === 'ar-livre'" [class.badge-indoor]="atv.tipo === 'indoor'">
+              <svg *ngIf="atv.tipo === 'ar-livre'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a4 4 0 0 0-4 4c0 3 4 8 4 8s4-5 4-8a4 4 0 0 0-4-4z" />
+              </svg>
+              <svg *ngIf="atv.tipo === 'indoor'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              </svg>
+              <span>{{ atv.tipo === 'ar-livre' ? 'Ao Ar Livre' : 'Ambiente Coberto' }}</span>
+            </div>
+            <h4 class="activity-title">{{ atv.nome }}</h4>
+            <p class="activity-desc">{{ atv.descricao }}</p>
+          </div>
+        </div>
+
+        <div class="activities-grid" *ngIf="!recomendacaoAtividades">
+          <div class="activity-card">
+            <div class="activity-badge-type badge-outdoor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4c0 3 4 8 4 8s4-5 4-8a4 4 0 0 0-4-4z" /></svg>
+              <span>Ao Ar Livre</span>
+            </div>
+            <h4 class="activity-title">Atividades ao Ar Livre</h4>
+            <p class="activity-desc">Permita o acesso à localização ou pesquise uma cidade para ver sugestões de passeios ao ar livre.</p>
+          </div>
+          <div class="activity-card">
+            <div class="activity-badge-type badge-indoor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+              <span>Ambiente Coberto</span>
+            </div>
+            <h4 class="activity-title">Ambientes Cobertos</h4>
+            <p class="activity-desc">Permita o acesso à localização ou pesquise uma cidade para ver sugestões de programas culturais e gastronômicos.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 5. PAINEL DE CUIDADOS (PROTETOR SOLAR, MANTEIGA DE CACAU, RECEITAS) -->
+      <!-- ============================================== -->
+      <section class="section-card">
+        <div class="section-title-row">
+          <div class="section-title-wrap">
+            <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+            </svg>
+            <div>
+              <h3>Painel de Cuidados Específicos & Bem-Estar</h3>
+              <p class="section-subtitle">Instruções práticas adaptadas ao clima de hoje</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="care-guides-stack" *ngIf="guiasCuidados.length > 0">
+          <div *ngFor="let guia of guiasCuidados" class="care-guide-item">
+            
+            <div class="care-header">
+              <div class="care-icon-box">
+                <svg *ngIf="guia.tipo === 'protetor-solar'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+                <svg *ngIf="guia.tipo === 'manteiga-cacau'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <svg *ngIf="guia.tipo === 'bebidas-quentes'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                  <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                  <line x1="6" y1="1" x2="6" y2="4" />
+                  <line x1="10" y1="1" x2="10" y2="4" />
+                  <line x1="14" y1="1" x2="14" y2="4" />
+                </svg>
+              </div>
+              <div class="care-header-text">
+                <h4>{{ guia.titulo }}</h4>
+                <p>{{ guia.subtitulo }}</p>
+              </div>
+            </div>
+
+            <!-- Lista de Itens (se aplicável) -->
+            <ul class="care-instruction-list" *ngIf="guia.itens.length > 0">
+              <li *ngFor="let item of guia.itens">
+                <svg class="dot-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+
+            <!-- Receitas de Bebidas Quentes (se aplicável) -->
+            <div class="recipes-grid" *ngIf="guia.receitas && guia.receitas.length > 0">
+              <div *ngFor="let rec of guia.receitas" class="recipe-card">
+                <div class="recipe-card-header">
+                  <svg class="recipe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                  </svg>
+                  <h5>{{ rec.nome }}</h5>
+                </div>
+
+                <div class="recipe-section">
+                  <span class="recipe-label">Ingredientes:</span>
+                  <ul class="recipe-list">
+                    <li *ngFor="let ing of rec.ingredientes">{{ ing }}</li>
+                  </ul>
+                </div>
+
+                <div class="recipe-section">
+                  <span class="recipe-label">Modo de Preparo:</span>
+                  <ol class="recipe-ol">
+                    <li *ngFor="let p of rec.preparo">{{ p }}</li>
+                  </ol>
+                </div>
+
+                <div class="recipe-beneficio">
+                  <strong>Benefícios:</strong> {{ rec.beneficios }}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="care-guides-stack" *ngIf="guiasCuidados.length === 0">
+          <div class="care-guide-item">
+            <div class="care-header">
+              <div class="care-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </div>
+              <div class="care-header-text">
+                <h4>Guia de Proteção Solar & Cuidados Térmicos</h4>
+                <p>Permita o acesso à localização ou pesquise uma cidade para carregar as orientações recomendadas.</p>
+              </div>
+            </div>
+            <ul class="care-instruction-list">
+              <li>
+                <svg class="dot-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                <span>Aguardando localização para calcular orientações específicas de bem-estar.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 6. TENDÊNCIAS DE MODA E PALETA DE CORES -->
+      <!-- ============================================== -->
+      <section class="section-card">
+        <div class="section-title-row">
+          <div class="section-title-wrap">
+            <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+              <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+              <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+              <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2Z" />
+            </svg>
+            <div>
+              <h3>Tendências de Moda & Cores Harmoniosas</h3>
+              <p class="section-subtitle">{{ paletaTendencia ? (paletaTendencia.estacao + ' — ' + paletaTendencia.sugestaoContexto) : 'Permita o acesso à localização ou pesquise uma cidade' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="colors-palette-grid" *ngIf="paletaTendencia">
+          <div *ngFor="let c of paletaTendencia.cores" class="color-card">
+            <div class="color-swatch" [style.background-color]="c.hex" [style.border]="c.hex === '#ffffff' ? '1px solid #cbd5e1' : 'none'"></div>
+            <div class="color-info">
+              <strong class="color-name">{{ c.nome }}</strong>
+              <span class="color-hex">{{ c.hex }}</span>
+              <p class="color-desc">{{ c.descricao }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="colors-palette-grid" *ngIf="!paletaTendencia">
+          <div class="color-card">
+            <div class="color-swatch" style="background-color: #cbd5e1;"></div>
+            <div class="color-info">
+              <strong class="color-name">Aguardando localização</strong>
+              <span class="color-hex">#CBD5E1</span>
+              <p class="color-desc">Permita o acesso à localização ou pesquise uma cidade</p>
+            </div>
+          </div>
+          <div class="color-card">
+            <div class="color-swatch" style="background-color: #94a3b8;"></div>
+            <div class="color-info">
+              <strong class="color-name">Aguardando localização</strong>
+              <span class="color-hex">#94A3B8</span>
+              <p class="color-desc">Permita o acesso à localização ou pesquise uma cidade</p>
+            </div>
+          </div>
+          <div class="color-card">
+            <div class="color-swatch" style="background-color: #64748b;"></div>
+            <div class="color-info">
+              <strong class="color-name">Aguardando localização</strong>
+              <span class="color-hex">#64748B</span>
+              <p class="color-desc">Permita o acesso à localização ou pesquise uma cidade</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 7. PREVISÃO ESTENDIDA PARA OS PRÓXIMOS 5 DIAS -->
+      <!-- ============================================== -->
+      <section class="section-card">
+        <div class="section-title-row">
+          <div class="section-title-wrap">
+            <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <div>
+              <h3>Previsão para os Próximos 5 Dias</h3>
+              <p class="section-subtitle">Tendência semanal completa</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="forecast-grid" *ngIf="previsaoDiaria.length > 0">
+          <div *ngFor="let dia of previsaoDiaria" class="forecast-day-card">
+            <div class="day-head">
+              <span class="day-name">{{ dia.dayOfWeek }}</span>
+              <span class="day-date">{{ dia.formattedDate }}</span>
+            </div>
+
+            <div class="day-icon-box">
+              <img [src]="obterIconeUrl(dia.icon, '2x')" [alt]="dia.condition" class="day-icon-img" />
+              <span class="day-cond-text">{{ dia.condition }}</span>
+            </div>
+
+            <div class="day-temp-bar-block">
+              <div class="day-temp-labels">
+                <span class="day-temp-min">▼ {{ dia.tempMin }}°C</span>
+                <span class="day-temp-max">▲ {{ dia.tempMax }}°C</span>
+              </div>
+              <div class="range-track">
+                <div class="range-fill"></div>
+              </div>
+            </div>
+
+            <div class="day-footer-stats">
+              <div class="day-stat" title="Probabilidade de Chuva">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+                <span>{{ dia.rainProbability }}%</span>
+              </div>
+              <div class="day-stat" title="Vento">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" />
+                </svg>
+                <span>{{ dia.windSpeed }} km/h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forecast-grid" *ngIf="previsaoDiaria.length === 0">
+          <div *ngFor="let dia of placeholderDias" class="forecast-day-card">
+            <div class="day-head">
+              <span class="day-name">{{ dia }}</span>
+              <span class="day-date">--/--</span>
+            </div>
+
+            <div class="day-icon-box">
+              <svg class="day-icon-img" style="opacity: 0.4; width: 44px; height: 44px; margin: auto;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+              </svg>
+              <span class="day-cond-text">Aguardando localização</span>
+            </div>
+
+            <div class="day-temp-bar-block">
+              <div class="day-temp-labels">
+                <span class="day-temp-min">▼ --°C</span>
+                <span class="day-temp-max">▲ --°C</span>
+              </div>
+              <div class="range-track">
+                <div class="range-fill"></div>
+              </div>
+            </div>
+
+            <div class="day-footer-stats">
+              <div class="day-stat" title="Probabilidade de Chuva">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+                <span>--%</span>
+              </div>
+              <div class="day-stat" title="Vento">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" />
+                </svg>
+                <span>-- km/h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- RODAPÉ -->
+  <footer class="app-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand-wrap">
+        <strong>ClimaCast</strong> — Dashboard Inteligente de Previsão do Tempo
+      </div>
+      <div class="footer-meta">
+        <span>Dados oficiais OpenWeatherMap API</span>
+        <span class="dot-sep">•</span>
+        <span>Tecnologia Angular</span>
+      </div>
+    </div>
+  </footer>
+
 </div>
