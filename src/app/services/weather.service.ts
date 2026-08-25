@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, of, catchError } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   WeatherResponse,
   ForecastResponse,
@@ -20,15 +21,33 @@ import {
 })
 export class WeatherService {
   private http = inject(HttpClient);
-  private readonly apiKey = '78a0ebbf843d1b3baeff34cc8374b721';
-  private readonly baseUrl = 'https://api.openweathermap.org/data/2.5';
-  private readonly geoUrl = 'https://api.openweathermap.org/geo/1.0';
+  private readonly proxyBaseUrl = environment.weatherApiBaseUrl || '/api';
+
+  private buildWeatherUrl(path: string, params: Record<string, string | number>): string {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      query.set(key, String(value));
+    });
+
+    return `${this.proxyBaseUrl}${path}?${query.toString()}`;
+  }
+
+  private buildGeoUrl(path: string, params: Record<string, string | number>): string {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      query.set(key, String(value));
+    });
+
+    return `${this.proxyBaseUrl}${path}?${query.toString()}`;
+  }
 
   /**
    * Obtém o clima atual por nome da cidade
    */
   getWeatherByCity(city: string): Observable<WeatherResponse> {
-    const url = `${this.baseUrl}/weather?q=${encodeURIComponent(city)}&units=metric&appid=${this.apiKey}&lang=pt_br`;
+    const url = this.buildWeatherUrl('/weather', { city });
     return this.http.get<WeatherResponse>(url);
   }
 
@@ -36,7 +55,7 @@ export class WeatherService {
    * Obtém a previsão de 5 dias por nome da cidade
    */
   getForecastByCity(city: string): Observable<ForecastResponse> {
-    const url = `${this.baseUrl}/forecast?q=${encodeURIComponent(city)}&units=metric&appid=${this.apiKey}&lang=pt_br`;
+    const url = this.buildWeatherUrl('/forecast', { city });
     return this.http.get<ForecastResponse>(url);
   }
 
@@ -44,7 +63,7 @@ export class WeatherService {
    * Obtém o clima atual por coordenadas geográficas
    */
   getWeatherByCoords(lat: number, lon: number): Observable<WeatherResponse> {
-    const url = `${this.baseUrl}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${this.apiKey}&lang=pt_br`;
+    const url = this.buildWeatherUrl('/weather/coords', { lat, lon });
     return this.http.get<WeatherResponse>(url);
   }
 
@@ -52,7 +71,7 @@ export class WeatherService {
    * Obtém a previsão por coordenadas geográficas
    */
   getForecastByCoords(lat: number, lon: number): Observable<ForecastResponse> {
-    const url = `${this.baseUrl}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${this.apiKey}&lang=pt_br`;
+    const url = this.buildWeatherUrl('/forecast/coords', { lat, lon });
     return this.http.get<ForecastResponse>(url);
   }
 
@@ -60,7 +79,10 @@ export class WeatherService {
    * Obtém a qualidade do ar pelas coordenadas
    */
   getAirPollution(lat: number, lon: number): Observable<AirPollutionResponse | null> {
-    const url = `${this.baseUrl}/air_pollution?lat=${lat}&lon=${lon}&appid=${this.apiKey}`;
+    const url = this.buildWeatherUrl('/air-pollution', {
+      lat,
+      lon
+    });
     return this.http.get<AirPollutionResponse>(url).pipe(
       catchError(() => of(null))
     );
@@ -70,7 +92,11 @@ export class WeatherService {
    * Busca estado / região pelo geocoding reverso
    */
   getGeocodingReverse(lat: number, lon: number): Observable<string> {
-    const url = `${this.geoUrl}/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${this.apiKey}`;
+    const url = this.buildGeoUrl('/geocoding/reverse', {
+      lat,
+      lon,
+      limit: 1
+    });
     return this.http.get<Array<{ name: string; state?: string; country: string }>>(url).pipe(
       map((res) => {
         if (res && res.length > 0 && res[0].state) {

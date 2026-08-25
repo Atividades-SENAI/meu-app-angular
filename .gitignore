@@ -1,5 +1,11 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+/src/environments/environment.local.ts
+
 # Compiled output
 /dist
 /tmp

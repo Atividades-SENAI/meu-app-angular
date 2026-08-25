@@ -57,3 +57,8 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+# COMO RODAR O PROJETO
+Na raíz do projeto, crie um arquivo .env com as informações:
+OPENWEATHER_API_KEY=SUA_CHAVE_API
+PORT=4200

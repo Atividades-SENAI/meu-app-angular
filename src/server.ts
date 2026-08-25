@@ -6,8 +6,10 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { join } from 'node:path';
+import 'dotenv/config';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
+const openWeatherApiKey = process.env['OPENWEATHER_API_KEY'];
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
@@ -23,6 +25,126 @@ const angularApp = new AngularNodeAppEngine();
  * });
  * ```
  */
+
+/**
+ * OpenWeather proxy endpoints to keep the API key server-side.
+ */
+const weatherBaseUrl = 'https://api.openweathermap.org/data/2.5';
+const geoBaseUrl = 'https://api.openweathermap.org/geo/1.0';
+
+const addApiKey = (url: URL) => {
+  url.searchParams.set('appid', openWeatherApiKey ?? '');
+  return url;
+};
+
+const fetchOpenWeather = async (url: URL, res: express.Response) => {
+  if (!openWeatherApiKey) {
+    res.status(500).json({ error: 'OPENWEATHER_API_KEY is not configured on the server.' });
+    return;
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' },
+  });
+
+  const payload = await response.text();
+  try {
+    const data = JSON.parse(payload);
+    res.status(response.status).json(data);
+  } catch {
+    res.status(response.status).send(payload);
+  }
+};
+
+app.get('/api/weather', async (req, res) => {
+  const city = req.query['city'];
+  if (!city || typeof city !== 'string') {
+    res.status(400).json({ error: 'city is required' });
+    return;
+  }
+
+  const url = addApiKey(new URL(`${weatherBaseUrl}/weather`));
+  url.searchParams.set('q', city);
+  url.searchParams.set('units', 'metric');
+  url.searchParams.set('lang', 'pt_br');
+  await fetchOpenWeather(url, res);
+});
+
+app.get('/api/forecast', async (req, res) => {
+  const city = req.query['city'];
+  if (!city || typeof city !== 'string') {
+    res.status(400).json({ error: 'city is required' });
+    return;
+  }
+
+  const url = addApiKey(new URL(`${weatherBaseUrl}/forecast`));
+  url.searchParams.set('q', city);
+  url.searchParams.set('units', 'metric');
+  url.searchParams.set('lang', 'pt_br');
+  await fetchOpenWeather(url, res);
+});
+
+app.get('/api/weather/coords', async (req, res) => {
+  const lat = req.query['lat'];
+  const lon = req.query['lon'];
+  if (lat === undefined || lon === undefined) {
+    res.status(400).json({ error: 'lat and lon are required' });
+    return;
+  }
+
+  const url = addApiKey(new URL(`${weatherBaseUrl}/weather`));
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lon));
+  url.searchParams.set('units', 'metric');
+  url.searchParams.set('lang', 'pt_br');
+  await fetchOpenWeather(url, res);
+});
+
+app.get('/api/forecast/coords', async (req, res) => {
+  const lat = req.query['lat'];
+  const lon = req.query['lon'];
+  if (lat === undefined || lon === undefined) {
+    res.status(400).json({ error: 'lat and lon are required' });
+    return;
+  }
+
+  const url = addApiKey(new URL(`${weatherBaseUrl}/forecast`));
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lon));
+  url.searchParams.set('units', 'metric');
+  url.searchParams.set('lang', 'pt_br');
+  await fetchOpenWeather(url, res);
+});
+
+app.get('/api/air-pollution', async (req, res) => {
+  const lat = req.query['lat'];
+  const lon = req.query['lon'];
+  if (lat === undefined || lon === undefined) {
+    res.status(400).json({ error: 'lat and lon are required' });
+    return;
+  }
+
+  const url = addApiKey(new URL(`${weatherBaseUrl}/air_pollution`));
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lon));
+  await fetchOpenWeather(url, res);
+});
+
+app.get('/api/geocoding/reverse', async (req, res) => {
+  const lat = req.query['lat'];
+  const lon = req.query['lon'];
+  if (lat === undefined || lon === undefined) {
+    res.status(400).json({ error: 'lat and lon are required' });
+    return;
+  }
+
+  const url = addApiKey(new URL(`${geoBaseUrl}/reverse`));
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lon));
+  url.searchParams.set('limit', '1');
+  await fetchOpenWeather(url, res);
+});
 
 /**
  * Serve static files from /browser
