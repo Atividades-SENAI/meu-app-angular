@@ -146,6 +146,20 @@ app.get('/api/geocoding/reverse', async (req, res) => {
   await fetchOpenWeather(url, res);
 });
 
+app.get('/api/datetime', (_req, res) => {
+  const now = new Date();
+
+  res.json({
+    iso: now.toISOString(),
+    datetime: now.toLocaleString('pt-BR', {
+      dateStyle: 'full',
+      timeStyle: 'medium',
+    }),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    unix: Math.floor(now.getTime() / 1000),
+  });
+});
+
 /**
  * Serve static files from /browser
  */

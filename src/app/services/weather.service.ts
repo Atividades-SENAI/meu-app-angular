@@ -108,6 +108,10 @@ export class WeatherService {
     );
   }
 
+  getServerDateTime(): Observable<{ iso: string; datetime: string; timezone: string; unix: number }> {
+    return this.http.get<{ iso: string; datetime: string; timezone: string; unix: number }>(`${this.proxyBaseUrl}/datetime`);
+  }
+
   /**
    * Processa os dados de qualidade do ar
    */

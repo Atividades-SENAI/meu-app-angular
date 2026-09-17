@@ -74,6 +74,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private timerRelogio: any = null;
   horaAtualFormatada: string = '';
   dataAtualFormatada: string = '';
+  dataHoraServidor: string = '';
 
   // Informações Formatadas
   nascerDoSol: string = '--:--';
@@ -87,6 +88,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.carregarTemaSalvo();
       this.carregarHistorico();
       this.iniciarRelogio();
+      this.carregarDataHoraServidor();
 
       // 1. Ao abrir o site, solicitar imediatamente a localização do usuário (Geolocation API)
       this.solicitarLocalizacaoInicial();
@@ -112,6 +114,17 @@ export class AppComponent implements OnInit, OnDestroy {
     };
     atualizar();
     this.timerRelogio = setInterval(atualizar, 1000);
+  }
+
+  private carregarDataHoraServidor(): void {
+    this.weatherService.getServerDateTime().subscribe({
+      next: (data) => {
+        this.dataHoraServidor = data.datetime;
+      },
+      error: () => {
+        this.dataHoraServidor = 'Não foi possível consultar a hora do servidor.';
+      }
+    });
   }
 
   toggleDarkMode(): void {

@@ -62,3 +62,74 @@ For more information on using the Angular CLI, including detailed command refere
 Na raíz do projeto, crie um arquivo .env com as informações:
 OPENWEATHER_API_KEY=SUA_CHAVE_API
 PORT=4200
+
+## API Express + Angular SSR
+
+Este projeto usa uma arquitetura em que o backend e o frontend coexistem no mesmo servidor Node/Express, com o Angular renderizando a aplicação e o Express expondo endpoints REST em `/api`.
+
+### APIs disponíveis
+
+- `/api/weather` — consulta o clima atual por cidade
+- `/api/forecast` — consulta a previsão do tempo
+- `/api/weather/coords` — consulta o clima por coordenadas
+- `/api/forecast/coords` — consulta a previsão por coordenadas
+- `/api/air-pollution` — consulta a qualidade do ar
+- `/api/geocoding/reverse` — consulta o nome da região por latitude/longitude
+- `/api/datetime` — retorna a data e hora do servidor em formato ISO e legível
+
+### Como a API de data/hora funciona
+
+A rota `/api/datetime` foi criada no arquivo `src/server.ts`. Ela usa o próprio servidor Node para responder com os dados de tempo atual do ambiente, incluindo:
+
+- `iso`: timestamp em ISO 8601
+- `datetime`: data/hora em texto legível em português
+- `timezone`: fuso horário do servidor
+- `unix`: valor em segundos Unix
+
+Exemplo de resposta:
+
+```json
+{
+  "iso": "2026-09-17T00:50:53.059Z",
+  "datetime": "sexta-feira, 17 de setembro de 2026, 00:50:53",
+  "timezone": "America/Sao_Paulo",
+  "unix": 1758095453
+}
+```
+
+### Como o Angular consome essas APIs
+
+No serviço `src/app/services/weather.service.ts`, o Angular usa `HttpClient` para chamar os endpoints do backend. A rota nova foi adicionada assim:
+
+```ts
+getServerDateTime(): Observable<{ iso: string; datetime: string; timezone: string; unix: number }> {
+  return this.http.get<{ iso: string; datetime: string; timezone: string; unix: number }>(
+    `${this.proxyBaseUrl}/datetime`
+  );
+}
+```
+
+Em seguida, o componente principal chama esse método em `src/app/app.ts` quando a aplicação inicializa:
+
+```ts
+private carregarDataHoraServidor(): void {
+  this.weatherService.getServerDateTime().subscribe({
+    next: (data) => {
+      this.dataHoraServidor = data.datetime;
+    },
+    error: () => {
+      this.dataHoraServidor = 'Não foi possível consultar a hora do servidor.';
+    }
+  });
+}
+```
+
+### Resumo
+
+As duas APIs são usadas em conjunto da seguinte forma:
+
+- a API Express cuida de integrações internas e dados do servidor, como `/api/datetime`
+- a API OpenWeather é encapsulada no backend para proteger a chave `OPENWEATHER_API_KEY`
+- o Angular consulta essas rotas via `HttpClient` sem expor a chave no cliente
+
+Dessa forma, o frontend fica mais seguro e a aplicação mantém um fluxo único de dados entre UI e servidor.
